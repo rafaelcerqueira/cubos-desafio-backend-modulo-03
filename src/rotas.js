@@ -1,6 +1,8 @@
 const express = require('express');
 const controladorUsuarios = require('./controladores/usuarios');
 const controladorLogin = require('./controladores/login');
+const controladorProdutos = require('./controladores/produtos');
+
 const validaToken = require('./filtros/autenticacao');
 
 const rotas = express();
@@ -8,10 +10,14 @@ const rotas = express();
 rotas.post('/usuario', controladorUsuarios.cadastrarUsuario);
 rotas.post('/login', controladorLogin.login);
 
+//Autenticação: todas as rotas abaixdo desta, necessitarão de validação por token.
 rotas.use(validaToken);
 
-rotas.get('/usuario', controladorUsuarios.detalharUsuario);
-rotas.put('/usuario', controladorUsuarios.editarUsuario);
+rotas.get('/perfil', controladorUsuarios.detalharUsuario);
+rotas.put('/perfil', controladorUsuarios.editarUsuario);
 
+rotas.get('/produtos', controladorProdutos.listarProdutos);
+rotas.get('/produtos/:id', controladorProdutos.detalharProduto);
+rotas.post('/produtos', controladorProdutos.cadastrarProduto);
 
 module.exports = rotas;
