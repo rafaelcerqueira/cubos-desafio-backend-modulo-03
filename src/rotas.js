@@ -10,10 +10,8 @@ rotas.post('/login', controladorLogin.login);
 
 rotas.use(validaToken);
 
-rotas.get('/usuario', async (req, res) => { 
-    console.log(req.usuario);
-    return res.json('Ok'); 
-});
+rotas.get('/usuario', controladorUsuarios.detalharUsuario);
+rotas.put('/usuario', controladorUsuarios.editarUsuario);
 
 
 module.exports = rotas;

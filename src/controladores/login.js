@@ -15,7 +15,7 @@ async function login(req, res) {
         const { rows, rowCount } = await conexao.query('select * from usuarios where email = $1', [email]);
 
         if (rowCount <= 0) {
-            return res.status(400).json({mensagem: "Não foi encontrado nenhum usuário para o e-mail fornecido, tente novamente com outro endereço de e-mail."});
+            return res.status(400).json({mensagem: "Não foi encontrado nenhum usuário para o e-mail informado, tente novamente com outro endereço de e-mail."});
         }
 
         const usuario = rows[0];
@@ -23,7 +23,7 @@ async function login(req, res) {
         const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
 
         if (!senhaCorreta) {
-            return res.status(400).json({mensagem: "Usuário e/ou senha inválidos!"});
+            return res.status(400).json({mensagem: "Usuário ou senha inválidos!"});
         }
 
         const { senha:_, ...usuarioSemSenha } = usuario;
