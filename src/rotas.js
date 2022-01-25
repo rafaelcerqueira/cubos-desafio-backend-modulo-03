@@ -19,5 +19,6 @@ rotas.put('/perfil', controladorUsuarios.editarUsuario);
 rotas.get('/produtos', controladorProdutos.listarProdutos);
 rotas.get('/produtos/:id', controladorProdutos.detalharProduto);
 rotas.post('/produtos', controladorProdutos.cadastrarProduto);
+rotas.put('/produtos/:id', controladorProdutos.editarProduto);
 
 module.exports = rotas;
