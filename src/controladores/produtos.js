@@ -1,3 +1,5 @@
+const { query } = require('express');
+const { rows } = require('pg/lib/defaults');
 const conexao = require('../conexao');
 
 async function listarProdutos(req, res) {
@@ -18,21 +20,18 @@ async function detalharProduto(req, res) {
     const usuario = req.usuario;
     const idProduto = req.params.id;
 
-    if(isNaN(Number(idProduto))) {
-        return res.status(400).json({mensagem: "O parâmetro ID deve ser um número inteiro positivo válido."});
+    const mensagemValidacaoIdProduto = validaIdProduto(idProduto);
+
+    if (mensagemValidacaoIdProduto) {
+        return res.status(400).json({mensagem: mensagemValidacaoIdProduto});
     }
 
     try {
-        const query = 'select * from produtos where id = $1';
-        
-        const { rows, rowCount } = await conexao.query(query, [idProduto]);
+        const query = 'select * from produtos where usuario_id = $1 and id = $2';
+        const { rows, rowCount } = await conexao.query(query, [usuario.id, idProduto]);
 
         if (rowCount <= 0) {
-            return res.status(404).json({mensagem: "Não foi encontrado um produto cadastrado para o ID informado."});
-        }
-
-        if (rows[0].usuario_id !== usuario.id) {
-            return res.status(403).json({mensagem: "Este usuário não tem permissão para acessar este recurso."});
+            return res.status(404).json({mensagem: "Não foi encontrado produto cadastrado para o ID informado."});
         }
 
         return res.status(200).json(rows[0]);
@@ -73,6 +72,12 @@ async function editarProduto(req, res) {
     const idProduto = req.params.id;
     const novosDadosProdutos = req.body;
 
+    const mensagemValidacaoIdProduto = validaIdProduto(idProduto);
+
+    if (mensagemValidacaoIdProduto) {
+        return res.status(400).json({mensagem: mensagemValidacaoIdProduto});
+    }
+
     const mensagemValidacao = validaCamposObrigatorios(novosDadosProdutos);
 
     if (mensagemValidacao) {
@@ -80,15 +85,10 @@ async function editarProduto(req, res) {
     }
 
     try {
-        const query = 'select * from produtos where id = $1';
-        const { rows, rowCount } = await conexao.query(query, [idProduto]);
+        const validacaoProdutoExiste = await validaSeProdutoExisteEPertenceAoUsuario(usuario.id, idProduto);
 
-        if (rowCount <= 0) {
-            return res.status(404).json({mensagem: "Não foi encontrado um produto cadastrado para o ID informado."});
-        }
-
-        if (rows[0].usuario_id !== usuario.id) {
-            return res.status(403).json({mensagem: "Este usuário não tem permissão para acessar este recurso."});
+        if (validacaoProdutoExiste && validacaoProdutoExiste.statusCode && validacaoProdutoExiste.mensagemValidacao) {
+            return res.status(validacaoProdutoExiste.statusCode).json({mensagem: validacaoProdutoExiste.mensagemValidacao});          
         }
 
         const comandoUpdate = 'update produtos set nome = $1, estoque = $2, categoria = $3, preco = $4, descricao = $5, imagem = $6 where id = $7';
@@ -116,6 +116,43 @@ async function editarProduto(req, res) {
 
 }
 
+async function excluirProduto(req, res) {
+    const usuario = req.usuario;
+    const idProduto = req.params.id;
+
+    const mensagemValidacaoIdProduto = validaIdProduto(idProduto);
+
+    if (mensagemValidacaoIdProduto) {
+        return res.status(400).json({mensagem: mensagemValidacaoIdProduto});
+    }
+
+    try {
+        const validacaoProdutoExiste = await validaSeProdutoExisteEPertenceAoUsuario(usuario.id, idProduto);
+
+        if (validacaoProdutoExiste && validacaoProdutoExiste.statusCode && validacaoProdutoExiste.mensagemValidacao) {
+            return res.status(validacaoProdutoExiste.statusCode).json({mensagem: validacaoProdutoExiste.mensagemValidacao});
+        }
+
+        const comandoDelete = 'delete from produtos where id = $1';
+        const {rowCount} = await conexao.query(comandoDelete, [idProduto]);
+
+        if (rowCount <= 0) {
+            return res.status(500).json({mensagem: "Não foi possível excluir o produto. Por favor, tente novamente."});
+        }
+
+        return res.status(204).send();
+
+    } catch (erro) {
+        return res.status(500).json({mensagem: "Ocorreu um erro inesperado. - " + erro.message});
+    }
+}
+
+function validaIdProduto(idProduto) {
+    if (isNaN(Number(idProduto))) {
+        return "O parâmetro ID deve ser um número inteiro positivo válido.";
+    }
+}
+
 function validaCamposObrigatorios(produto) {
 
     if(!produto.nome) {
@@ -135,9 +172,31 @@ function validaCamposObrigatorios(produto) {
     }
 }
 
+
+//Valida se o produto existe e se pertence ao usuário logado.
+async function validaSeProdutoExisteEPertenceAoUsuario(idUsuarioLogado, idProduto) {
+    const query = 'select * from produtos where id = $1';
+    const { rows, rowCount } = await conexao.query(query, [idProduto]);
+
+    if (rowCount <= 0) {
+        return {
+            statusCode: 404,
+            mensagemValidacao: "Não foi encontrado produto cadastrado para o ID informado."
+        };
+    }
+
+    if (rows[0].usuario_id !== idUsuarioLogado) {
+        return {
+            statusCode: 403,
+            mensagemValidacao: "Este usuário não tem permissão para acessar este recurso." 
+        };
+    }
+}
+
 module.exports = {
     listarProdutos,
     detalharProduto,
     cadastrarProduto,
-    editarProduto
+    editarProduto,
+    excluirProduto
 }

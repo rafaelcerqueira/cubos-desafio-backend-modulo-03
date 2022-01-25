@@ -20,5 +20,6 @@ rotas.get('/produtos', controladorProdutos.listarProdutos);
 rotas.get('/produtos/:id', controladorProdutos.detalharProduto);
 rotas.post('/produtos', controladorProdutos.cadastrarProduto);
 rotas.put('/produtos/:id', controladorProdutos.editarProduto);
+rotas.delete('/produtos/:id', controladorProdutos.excluirProduto);
 
 module.exports = rotas;
