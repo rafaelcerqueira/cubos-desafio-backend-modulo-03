@@ -4,10 +4,18 @@ const conexao = require('../conexao');
 
 async function listarProdutos(req, res) {
     const usuario = req.usuario;
+    const categoria = req.query.categoria;
 
     try {
-        const query = 'select * from produtos where usuario_id = $1';   
-        const { rows } = await conexao.query(query, [usuario.id]);
+        let query = 'select * from produtos where usuario_id = $1';
+        const queryParams = [usuario.id];
+
+        if (categoria) {
+            query = query + ' and categoria ilike $2';
+            queryParams.push(`%${categoria}%`);
+        }
+        
+        const { rows } = await conexao.query(query, queryParams);
 
         return res.status(200).json(rows);
         
